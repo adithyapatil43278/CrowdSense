@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Indoor Crowd Monitor</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header><div><p class="eyebrow">UNIVERSITY LIBRARY</p><h1>Indoor Crowd Monitor</h1></div><span id="last-updated">Connecting...</span></header>
+    <section class="cards">
+      <article class="card hero-card"><span>Current occupancy</span><strong id="occupancy">--</strong><small>people inside now</small></article>
+      <article class="card"><span>Today's entries</span><strong id="entries">--</strong><small>sensor events</small></article>
+      <article class="card"><span>Today's exits</span><strong id="exits">--</strong><small>sensor events</small></article>
+    </section>
+    <section class="grid">
+      <article class="panel wide"><div class="panel-title"><h2>Historical trend</h2><span>Last 7 days</span></div><canvas id="history-chart"></canvas></article>
+      <article class="panel"><h2>Predict future crowd</h2><form id="prediction-form">
+        <label>Date<input type="date" id="prediction-date" required></label><label>Hour<input type="number" id="prediction-hour" min="0" max="23" value="14" required></label>
+        <div class="two"><label>Exam period<select id="exam"><option value="0">No</option><option value="1">Yes</option></select></label><label>Holiday<select id="holiday"><option value="0">No</option><option value="1">Yes</option></select></label></div>
+        <label>Days to exam<input type="number" id="days" min="0" max="365" value="30"></label><button>Get prediction</button>
+      </form><div id="prediction-result" class="result" hidden></div></article>
+      <article class="panel"><h2>Add hourly record</h2><form id="manual-form">
+        <label>Date<input type="date" id="manual-date" required></label><div class="two"><label>Hour<input type="number" id="manual-hour" min="0" max="23" required></label><label>People<input type="number" id="people" min="0" required></label></div>
+        <div class="two"><label>Entries<input type="number" id="manual-entries" min="0" value="0"></label><label>Exits<input type="number" id="manual-exits" min="0" value="0"></label></div><button>Save record</button>
+      </form><p id="manual-message" class="message"></p></article>
+      <article class="panel"><h2>Import CSV</h2><p class="muted">Required columns: date, hour, people_present. Optional: entries, exits.</p><form id="import-form"><input type="file" id="csv" accept=".csv" required><button>Import history</button></form><p id="import-message" class="message"></p></article>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

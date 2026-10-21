@@ -1,0 +1,22 @@
+.env
+*.db
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+
+# Test and local runtime artifacts
+test_*.db
+*.log
+
+# Python tooling and coverage output
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Local editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

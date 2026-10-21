@@ -1,0 +1,261 @@
+const byte TRIG1 = 3;
+const byte ECHO1 = 4;
+
+const byte TRIG2 = 5;
+const byte ECHO2 = 6;
+
+const int DETECTION_DISTANCE = 50;
+
+// Maximum time allowed between first and second sensor
+const unsigned long SEQUENCE_TIMEOUT = 5000;
+
+// Time to wait after a person is counted
+const unsigned long COOLDOWN_TIME = 1500;
+
+// Serial output interval
+const unsigned long DISPLAY_INTERVAL = 500;
+
+long count = 0;
+
+enum State
+{
+  IDLE,
+  SENSOR1_FIRST,
+  SENSOR2_FIRST,
+  COOLDOWN
+};
+
+State state = IDLE;
+
+unsigned long sequenceStart = 0;
+unsigned long cooldownStart = 0;
+unsigned long lastDisplay = 0;
+
+
+// --------------------------------------------------
+// READ DISTANCE
+// --------------------------------------------------
+
+long readDistance(byte trigPin, byte echoPin)
+{
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+
+  digitalWrite(trigPin, LOW);
+
+  unsigned long duration =
+    pulseIn(echoPin, HIGH, 30000);
+
+  if (duration == 0)
+  {
+    return 999;
+  }
+
+  long distance =
+    duration * 0.0343 / 2;
+
+  return distance;
+}
+
+
+// --------------------------------------------------
+// SETUP
+// --------------------------------------------------
+
+void setup()
+{
+  Serial.begin(9600);
+
+  pinMode(TRIG1, OUTPUT);
+  pinMode(ECHO1, INPUT);
+
+  pinMode(TRIG2, OUTPUT);
+  pinMode(ECHO2, INPUT);
+
+  digitalWrite(TRIG1, LOW);
+  digitalWrite(TRIG2, LOW);
+
+  Serial.println();
+  Serial.println("==============================");
+  Serial.println("       PEOPLE COUNTER");
+  Serial.println("==============================");
+  Serial.println("S1 -> S2 = ENTER");
+  Serial.println("S2 -> S1 = EXIT");
+  Serial.println();
+
+  Serial.print("COUNT = ");
+  Serial.println(count);
+
+  Serial.println();
+  Serial.println("READY");
+}
+
+
+// --------------------------------------------------
+// MAIN LOOP
+// --------------------------------------------------
+
+void loop()
+{
+  long distance1 = readDistance(TRIG1, ECHO1);
+
+  delay(10);
+
+  long distance2 = readDistance(TRIG2, ECHO2);
+
+  bool sensor1Detected =
+    distance1 <= DETECTION_DISTANCE;
+
+  bool sensor2Detected =
+    distance2 <= DETECTION_DISTANCE;
+
+
+  // -----------------------------------------------
+  // DISPLAY STATUS SLOWLY
+  // -----------------------------------------------
+
+  if (millis() - lastDisplay >= DISPLAY_INTERVAL)
+  {
+    Serial.print("S1: ");
+    Serial.print(distance1);
+    Serial.print(" cm");
+
+    Serial.print(" | S2: ");
+    Serial.print(distance2);
+    Serial.print(" cm");
+
+    Serial.print(" | COUNT: ");
+    Serial.println(count);
+
+    lastDisplay = millis();
+  }
+
+
+  // -----------------------------------------------
+  // IDLE
+  // -----------------------------------------------
+
+  if (state == IDLE)
+  {
+    // Sensor 1 detects first
+    if (sensor1Detected && !sensor2Detected)
+    {
+      state = SENSOR1_FIRST;
+
+      sequenceStart = millis();
+
+      Serial.println("SENSOR 1 FIRST");
+    }
+
+    // Sensor 2 detects first
+    else if (sensor2Detected && !sensor1Detected)
+    {
+      state = SENSOR2_FIRST;
+
+      sequenceStart = millis();
+
+      Serial.println("SENSOR 2 FIRST");
+    }
+  }
+
+
+  // -----------------------------------------------
+  // SENSOR 1 FIRST
+  // -----------------------------------------------
+
+  else if (state == SENSOR1_FIRST)
+  {
+    // Then Sensor 2 detects
+    if (sensor2Detected)
+    {
+      count++;
+
+      Serial.println();
+      Serial.println("******** ENTER ********");
+
+      Serial.print("COUNT = ");
+      Serial.println(count);
+
+      Serial.println();
+
+      state = COOLDOWN;
+
+      cooldownStart = millis();
+    }
+
+    // Sequence took too long
+    else if (millis() - sequenceStart >= SEQUENCE_TIMEOUT)
+    {
+      Serial.println("S1 sequence cancelled");
+
+      state = IDLE;
+    }
+  }
+
+
+  // -----------------------------------------------
+  // SENSOR 2 FIRST
+  // -----------------------------------------------
+
+  else if (state == SENSOR2_FIRST)
+  {
+    // Then Sensor 1 detects
+    if (sensor1Detected)
+    {
+      count--;
+
+      Serial.println();
+      Serial.println("******** EXIT ********");
+
+      Serial.print("COUNT = ");
+      Serial.println(count);
+
+      Serial.println();
+
+      state = COOLDOWN;
+
+      cooldownStart = millis();
+    }
+
+    // Sequence took too long
+    else if (millis() - sequenceStart >= SEQUENCE_TIMEOUT)
+    {
+      Serial.println("S2 sequence cancelled");
+
+      state = IDLE;
+    }
+  }
+
+
+  // -----------------------------------------------
+  // COOLDOWN
+  // -----------------------------------------------
+
+  else if (state == COOLDOWN)
+  {
+    /*
+       Wait until the person has moved away
+       AND cooldown time has passed.
+    */
+
+    if (!sensor1Detected &&
+        !sensor2Detected &&
+        millis() - cooldownStart >= COOLDOWN_TIME)
+    {
+      state = IDLE;
+
+      Serial.println("READY");
+      Serial.println();
+    }
+  }
+
+
+  // -----------------------------------------------
+  // LOOP SPEED
+  // -----------------------------------------------
+
+  delay(100);
+}
